@@ -65,12 +65,14 @@ type MainWindow struct {
 }
 
 func (mw MainWindow) Create() error {
+	disableToolBar := len(mw.ToolBar.Actions) == 0 && len(mw.ToolBar.Items) == 0
 	w, err := walk.NewMainWindowWithCfg(&walk.MainWindowCfg{
 		Name:            mw.Name,
 		Bounds:          mw.Bounds.toW(),
 		DisableMaximize: mw.DisableMaximize,
 		DisableMinimize: mw.DisableMinimize,
 		DisableResizing: mw.DisableResizing,
+		DisableToolBar:  disableToolBar,
 	})
 	if err != nil {
 		return err
@@ -129,21 +131,23 @@ func (mw MainWindow) Create() error {
 	}
 
 	return builder.InitWidget(fi, w, func() error {
-		if len(mw.ToolBar.Items) > 0 {
-			var tb *walk.ToolBar
-			if mw.ToolBar.AssignTo == nil {
-				mw.ToolBar.AssignTo = &tb
-			}
+		if w.ToolBar() != nil {
+			if len(mw.ToolBar.Items) > 0 {
+				var tb *walk.ToolBar
+				if mw.ToolBar.AssignTo == nil {
+					mw.ToolBar.AssignTo = &tb
+				}
 
-			if err := mw.ToolBar.Create(builder); err != nil {
-				return err
-			}
+				if err := mw.ToolBar.Create(builder); err != nil {
+					return err
+				}
 
-			old := w.ToolBar()
-			w.SetToolBar(*mw.ToolBar.AssignTo)
-			old.Dispose()
-		} else {
-			builder.deferBuildActions(w.ToolBar().Actions(), mw.ToolBarItems)
+				old := w.ToolBar()
+				w.SetToolBar(*mw.ToolBar.AssignTo)
+				old.Dispose()
+			} else {
+				builder.deferBuildActions(w.ToolBar().Actions(), mw.ToolBarItems)
+			}
 		}
 
 		for _, sbi := range mw.StatusBarItems {
@@ -173,7 +177,9 @@ func (mw MainWindow) Create() error {
 		if err != nil {
 			return err
 		}
-		w.ToolBar().SetImageList(imageList)
+		if w.ToolBar() != nil {
+			w.ToolBar().SetImageList(imageList)
+		}
 
 		if mw.OnDropFiles != nil {
 			w.DropFiles().Attach(mw.OnDropFiles)
