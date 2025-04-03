@@ -27,6 +27,7 @@ type MainWindowCfg struct {
 	DisableMaximize bool // Omit the maximize button.
 	DisableMinimize bool // Omit the minimize button.
 	DisableResizing bool // Prevent the user from being able to resize the window.
+	DisableToolBar  bool // Omit the toolbar.
 }
 
 type MainWindow struct {
@@ -90,11 +91,13 @@ func NewMainWindowWithCfg(cfg *MainWindowCfg) (*MainWindow, error) {
 		return nil, lastError("SetMenu")
 	}
 
-	tb, err := NewToolBar(mw)
-	if err != nil {
-		return nil, err
+	if !cfg.DisableToolBar {
+		tb, err := NewToolBar(mw)
+		if err != nil {
+			return nil, err
+		}
+		mw.SetToolBar(tb)
 	}
-	mw.SetToolBar(tb)
 
 	if mw.statusBar, err = NewStatusBar(mw); err != nil {
 		return nil, err
@@ -130,8 +133,11 @@ func (mw *MainWindow) Menu() *Menu {
 	return mw.menu
 }
 
-func (mw *MainWindow) ToolBar() *ToolBar {
-	return mw.toolBar
+func (mw *MainWindow) HandleToolBar(f func(*ToolBar) error) error {
+	if mw.toolBar != nil {
+		return f(mw.toolBar)
+	}
+	return nil
 }
 
 func (mw *MainWindow) SetToolBar(tb *ToolBar) {
